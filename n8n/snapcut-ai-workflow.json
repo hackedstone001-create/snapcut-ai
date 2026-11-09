@@ -1,0 +1,92 @@
+{
+  "name": "SnapCut AI - Cloudinary & Background Removal Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "snapcut-remove-bg",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook Inbound",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "apiKey",
+        "resource": "image",
+        "operation": "upload",
+        "file": "={{$binary.image}}",
+        "options": {}
+      },
+      "id": "2",
+      "name": "Cloudinary Upload",
+      "type": "n8n-nodes-base.cloudinary",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.remove.bg/v1.0/removebg",
+        "method": "POST",
+        "sendBinaryData": true,
+        "binaryPropertyName": "image",
+        "options": {}
+      },
+      "id": "3",
+      "name": "AI Background Removal API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"processedUrl\": \"{{$json.data.url}}\",\n  \"width\": {{$json.width || 1200}},\n  \"height\": {{$json.height || 800}},\n  \"fileSize\": {{$json.bytes || 150000}}\n}"
+      },
+      "id": "4",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Inbound": {
+      "main": [
+        [
+          {
+            "node": "Cloudinary Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cloudinary Upload": {
+      "main": [
+        [
+          {
+            "node": "AI Background Removal API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Background Removal API": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
